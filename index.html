@@ -1,0 +1,621 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>davyd velychko</title>
+<meta name="description" content="Davyd Velychko — junior software developer. Python, backend, network security.">
+<meta name="color-scheme" content="dark">
+<meta property="og:type" content="website">
+<meta property="og:title" content="davyd velychko — python · backend · network security">
+<meta property="og:description" content="Junior software developer. Open-source tools for networks and security: a packet-capture analyzer, a DNS resolver, a Redis-compatible server, a mini SIEM.">
+<meta property="og:url" content="https://dav1dushka.github.io/">
+<meta property="og:image" content="https://dav1dushka.github.io/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://dav1dushka.github.io/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23050505'/%3E%3Crect x='3' y='11' width='7' height='2' fill='%238aff80'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg: #050505; --ink: #cfcfcf; --dim: #6c6c6c; --faint: #2a2a2a; --line: #1a1a1a;
+    --acc: #8aff80; --warn: #ffcf5a; --err: #ff6b5e;
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", "DejaVu Sans Mono", monospace;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html { background: var(--bg); scroll-behavior: smooth; }
+  body {
+    margin: 0; color: var(--ink); font: 14.5px/1.7 var(--mono); letter-spacing: .01em;
+    background:
+      radial-gradient(120% 80% at 50% 0%, #0c0f0c 0%, var(--bg) 60%) fixed;
+    -webkit-font-smoothing: antialiased;
+  }
+  /* the ascii field: a canvas behind everything, drawn by the script at the end */
+  #field { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; opacity: 0; transition: opacity 1.6s ease; }
+  #field.on { opacity: 1; }
+  main, footer { position: relative; z-index: 1; }
+  /* faint CRT scanlines; purely decorative */
+  body::after {
+    content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 10;
+    background: repeating-linear-gradient(to bottom, rgba(255,255,255,.018) 0 1px, transparent 1px 3px);
+  }
+  ::selection { background: var(--acc); color: #000; }
+  a { color: var(--ink); text-decoration: none; border-bottom: 1px dotted var(--dim); }
+  a:hover, a:focus-visible { background: var(--acc); color: #000; border-color: var(--acc); outline: none; }
+  .acc { color: var(--acc); }
+  .dim { color: var(--dim); }
+  .warn { color: var(--warn); }
+
+  main { max-width: 900px; margin: 0 auto; padding: 56px 22px 40px; }
+  header pre { margin: 0; font: inherit; line-height: 1.25; color: var(--acc); text-shadow: 0 0 14px rgba(138,255,128,.25); }
+  .top { display: grid; grid-template-columns: auto 1fr; gap: 28px; align-items: end; }
+  .who h1 { font: 700 15px/1.4 var(--mono); margin: 0; color: #f2f2f2; letter-spacing: .04em; }
+  .who p { margin: 2px 0 0; }
+  .keys { position: fixed; top: 14px; right: 18px; font-size: 12px; color: var(--dim); z-index: 11; }
+  .keys b { color: var(--ink); font-weight: 400; border: 1px solid var(--faint); padding: 0 5px; }
+
+  .status { margin: 34px 0 0; display: grid; grid-template-columns: 13ch 1fr; gap: 0 12px; }
+  .status dt { color: var(--dim); }
+  .status dd, .kv dd { margin: 0; overflow-wrap: anywhere; }
+  .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--acc);
+    box-shadow: 0 0 10px var(--acc); margin-right: 8px; vertical-align: 1px; animation: pulse 2.4s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: .35; } }
+
+  section { margin-top: 64px; }
+  .prompt { color: var(--dim); margin: 0 0 14px; font-size: 13.5px; }
+  .prompt .u { color: var(--acc); }
+  .prompt .cmd { color: var(--ink); }
+  .rule { border: 0; border-top: 1px dashed var(--faint); margin: 64px 0 0; }
+  p { margin: 0 0 12px; max-width: 68ch; }
+
+  /* project listing, styled like ls -l */
+  .ls { list-style: none; margin: 0; padding: 0; }
+  .ls li { display: grid; grid-template-columns: 11ch 18ch 1fr auto; gap: 14px; padding: 7px 0; border-bottom: 1px solid var(--line); align-items: baseline; }
+  .ls li:hover { background: linear-gradient(90deg, rgba(138,255,128,.05), transparent 70%); }
+  .ls .perm { color: var(--faint); }
+  .ls .name { color: #f2f2f2; }
+  .ls .name::after { content: "/"; color: var(--dim); }
+  .ls .desc { color: #a9a9a9; }
+  .ls .desc small { display: block; color: var(--dim); font-size: 12.5px; }
+  .ls .lk { white-space: nowrap; font-size: 13px; }
+  .ls .lk a { margin-left: 6px; }
+  .ls.old li { grid-template-columns: 11ch 26ch 1fr auto; padding: 4px 0; font-size: 13.5px; }
+  .ls.old .desc { color: var(--dim); }
+  .sub { margin: 26px 0 8px; color: var(--dim); font-size: 13px; }
+
+  .kv { display: grid; grid-template-columns: 14ch 1fr; gap: 2px 12px; margin: 0; }
+  .kv dt { color: var(--dim); }
+  .kv dd { margin: 0; }
+
+  .log { list-style: none; margin: 0; padding: 0; }
+  .log li { display: grid; grid-template-columns: 17ch 1fr; gap: 12px; padding: 3px 0; }
+  .log time { color: var(--dim); }
+
+  .bar { display: inline-block; letter-spacing: -1px; color: var(--acc); }
+  .bar i { font-style: normal; color: var(--faint); }
+
+  /* proof block: real tool output in the first screen */
+  .proof { margin: 34px 0 0; border: 1px solid var(--faint); background: rgba(8,10,8,.8); }
+  .proof-head { display: flex; justify-content: space-between; gap: 12px; padding: 6px 12px; border-bottom: 1px solid var(--faint); color: var(--dim); font-size: 12px; }
+  .proof pre { margin: 0; padding: 12px 14px 14px; font: 13px/1.6 var(--mono); white-space: pre-wrap; overflow-x: auto; min-height: 15.5em; }
+  .proof .hi { color: var(--err); } .proof .md { color: var(--warn); } .proof .lo { color: #7fd1ff; }
+  .stats { max-width: none; margin: 14px 0 0; color: var(--dim); font-size: 13px; }
+  .stats b { color: var(--ink); font-weight: 400; }
+  .stats span { white-space: nowrap; }
+
+  /* project preview that follows the pointer */
+  .peek { position: fixed; z-index: 20; width: 340px; pointer-events: none; border: 1px solid var(--faint); background: #080908;
+    box-shadow: 0 18px 50px rgba(0,0,0,.6), 0 0 0 1px rgba(138,255,128,.08); opacity: 0; transform: translateY(6px); transition: opacity .15s, transform .15s; }
+  .peek.on { opacity: 1; transform: none; }
+  .peek img { display: block; width: 100%; height: auto; }
+  .peek pre { margin: 0; padding: 10px 12px; font: 10.5px/1.5 var(--mono); color: #bdbdbd; white-space: pre; overflow: hidden; }
+  .peek figcaption { padding: 5px 10px; border-top: 1px solid var(--faint); color: var(--dim); font-size: 11.5px; }
+  @media (hover: none) { .peek { display: none; } }
+
+  /* the terminal */
+  .term { margin-top: 64px; border: 1px solid var(--faint); background: rgba(10,12,10,.85); }
+  .term-head { display: flex; justify-content: space-between; padding: 6px 12px; border-bottom: 1px solid var(--faint); color: var(--dim); font-size: 12px; }
+  #out { padding: 12px 14px 0; max-height: 340px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; font-size: 13.5px; }
+  #out .err { color: var(--err); }
+  #out .ok { color: var(--acc); }
+  .line { display: flex; gap: 8px; padding: 8px 14px 12px; }
+  .line label { color: var(--acc); white-space: nowrap; }
+  #cmd { flex: 1; background: transparent; border: 0; outline: 0; color: var(--ink); font: inherit; caret-color: var(--acc); padding: 0; }
+  .nojs { padding: 12px 14px; color: var(--dim); }
+
+  footer { margin-top: 70px; padding-top: 18px; border-top: 1px dashed var(--faint); color: var(--dim); font-size: 12.5px; }
+  footer p { max-width: none; margin: 0 0 4px; }
+
+  .cursor { display: inline-block; width: .6em; height: 1.05em; background: var(--acc); vertical-align: -2px; animation: blink 1.05s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  @media (max-width: 720px) {
+    .proof-head { flex-direction: column; gap: 2px; }
+    .proof pre { white-space: pre; font-size: 11px; min-height: 0; }
+    main { padding-top: 40px; }
+    .top { grid-template-columns: 1fr; gap: 16px; }
+    .keys { display: none; }
+    .ls li, .ls.old li { grid-template-columns: 1fr auto; gap: 2px 12px; }
+    .ls .perm { display: none; }
+    .ls .desc { grid-column: 1 / -1; grid-row: 2; }
+    .status, .kv { grid-template-columns: 12.5ch 1fr; gap: 0 8px; }
+    .log li { grid-template-columns: 1fr; gap: 0; padding: 6px 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .dot, .cursor { animation: none; }
+    html { scroll-behavior: auto; }
+  }
+</style>
+</head>
+<body>
+<canvas id="field" aria-hidden="true"></canvas>
+<figure class="peek" id="peek" aria-hidden="true"></figure>
+<div class="keys" aria-hidden="true"><b>1</b>-<b>6</b> jump &nbsp;<b>/</b> terminal</div>
+
+<main>
+  <header>
+    <div class="top">
+<pre aria-hidden="true">█▀▀▄ █   █
+█  █ ▀▄ ▄▀
+▀▀▀    ▀  </pre>
+      <div class="who">
+        <h1 data-scramble>davyd velychko</h1>
+        <p class="dim">junior software developer &mdash; python &middot; backend &middot; network security</p>
+      </div>
+    </div>
+
+    <dl class="status">
+      <dt>status</dt><dd><span class="dot" aria-hidden="true"></span>online &middot; open to work</dd>
+      <dt>looking for</dt><dd>a junior developer role &middot; remote or relocation</dd>
+      <dt>focus</dt><dd>backend services, networking, detection &amp; defensive security</dd>
+      <dt>reach me</dt><dd><a href="mailto:davyd.velychko.tech@gmail.com">davyd.velychko.tech@gmail.com</a></dd>
+      <dt>last update</dt><dd><time datetime="2026-11-26">2026-11-26</time></dd>
+    </dl>
+
+    <figure class="proof" aria-label="Output of pcaplens on a demo capture">
+      <figcaption class="proof-head"><span>~/projects/pcaplens</span><span>real findings, shortened &middot; synthetic demo capture</span></figcaption>
+<pre id="proof"><span class="acc">$</span> pcaplens office.pcapng
+4,827 packets, 4.9 MB over 600 s &middot; 11 findings: 5 high, 4 medium, 2 low
+
+<span class="hi">[HIGH]  </span> FTP login in clear text (password not shown)           +140s
+<span class="hi">[HIGH]  </span> ARP spoofing: 192.168.1.1 claimed by 2 devices         +190s
+<span class="hi">[HIGH]  </span> Port scan of 192.168.1.50 (open: 21, 22, 80, 445)      +200s
+<span class="hi">[HIGH]  </span> Possible DNS tunnel via exfil-tunnel.example           +300s
+<span class="md">[MEDIUM]</span> Regular check-ins to update-check.example, every 30 s   +20s
+<span class="md">[MEDIUM]</span> Large upload to files.storage-drop.example, 2.6 MB     +540s
+<span class="lo">[LOW]   </span> TLS to 198.51.100.77 without a DNS lookup              +20s
+<span class="dim">&hellip; full report: </span><a href="https://dav1dushka.github.io/pcaplens/">dav1dushka.github.io/pcaplens</a></pre>
+    </figure>
+    <p class="stats"><span><b>7</b> open-source tools</span> &middot; <span><b>230+</b> automated tests</span> &middot; <span>ci on every push</span> &middot; <span><b>5</b> live demos</span></p>
+  </header>
+
+  <section id="about" aria-labelledby="h-about">
+    <p class="prompt"><span class="u">davyd@velychko</span>:~$ <span class="cmd" id="h-about" data-scramble>cat about.txt</span></p>
+    <p>I write backend software in Python, and I like the layers most people never look at: packets, protocols, logs &mdash; the places where things break and where attacks hide.</p>
+    <p>Most of what I build starts from a question like <span class="acc">&ldquo;how does this actually work?&rdquo;</span> So I built a DNS resolver, a Redis-compatible server and a packet-capture analyzer from scratch, each with tests, CI and documentation.</p>
+    <p>Diploma in software development (2025); now studying software engineering at Chernihiv Polytechnic. I worked in delivery and hospitality while studying, which taught me to be reliable and calm when things get busy.</p>
+  </section>
+
+  <section id="projects" aria-labelledby="h-projects">
+    <p class="prompt"><span class="u">davyd@velychko</span>:~$ <span class="cmd" id="h-projects" data-scramble>ls -l ~/projects</span></p>
+    <ul class="ls">
+      <li><span class="perm">drwxr-xr-x</span><span class="name">pcaplens</span>
+        <span class="desc">finds attacks in pcap/pcapng captures: port scans, ARP spoofing, DNS tunnels, beaconing, clear-text passwords<small>python &middot; own parsers for pcap, tcp/ip, dns, tls (ja3) &middot; mitre att&amp;ck</small></span>
+        <span class="lk"><a href="https://github.com/Dav1dushka/pcaplens">[src]</a><a href="https://dav1dushka.github.io/pcaplens/">[report]</a></span></li>
+      <li><span class="perm">drwxr-xr-x</span><span class="name">sentinel</span>
+        <span class="desc">self-hosted security monitoring: log agent &rarr; detection rules &rarr; alerts dashboard<small>fastapi &middot; postgresql &middot; redis &middot; react &middot; docker</small></span>
+        <span class="lk"><a href="https://github.com/Dav1dushka/sentinel">[src]</a><a href="https://dav1dushka.github.io/sentinel/">[demo]</a></span></li>
+      <li><span class="perm">drwxr-xr-x</span><span class="name">minidis</span>
+        <span class="desc">a redis-compatible server: works with redis-cli and redis-py, ttl expiry, append-only persistence<small>python &middot; asyncio &middot; resp protocol</small></span>
+        <span class="lk"><a href="https://github.com/Dav1dushka/minidis">[src]</a></span></li>
+      <li><span class="perm">drwxr-xr-x</span><span class="name">rootwalk</span>
+        <span class="desc">a dns resolver from scratch that walks root &rarr; tld &rarr; domain and shows every hop<small>python &middot; rfc 1035 wire format &middot; udp/tcp</small></span>
+        <span class="lk"><a href="https://github.com/Dav1dushka/rootwalk">[src]</a></span></li>
+      <li><span class="perm">drwxr-xr-x</span><span class="name">linklens</span>
+        <span class="desc">browser extension that shows where a link really goes: homoglyphs, look-alike domains, lying link text<small>typescript &middot; chrome mv3 &middot; punycode</small></span>
+        <span class="lk"><a href="https://github.com/Dav1dushka/linklens">[src]</a><a href="https://dav1dushka.github.io/linklens/">[demo]</a></span></li>
+      <li><span class="perm">drwxr-xr-x</span><span class="name">firewall-defense</span>
+        <span class="desc">a game: write firewall rules that let users in and keep attackers out, 8 levels<small>typescript &middot; canvas &middot; iptables-like rule language</small></span>
+        <span class="lk"><a href="https://github.com/Dav1dushka/firewall-defense">[src]</a><a href="https://dav1dushka.github.io/firewall-defense/">[play]</a></span></li>
+      <li><span class="perm">drwxr-xr-x</span><span class="name">subnet-sprint</span>
+        <span class="desc">60-second subnetting game that explains every mistake bit by bit<small>typescript &middot; ipv4 maths</small></span>
+        <span class="lk"><a href="https://github.com/Dav1dushka/subnet-sprint">[src]</a><a href="https://dav1dushka.github.io/subnet-sprint/">[play]</a></span></li>
+    </ul>
+
+    <p class="sub"># earlier work</p>
+    <ul class="ls old">
+      <li><span class="perm">drwxr-x---</span><span class="name">identity-access-api</span><span class="desc">jwt auth, refresh-token rotation, roles, audit trail</span><span class="lk"><a href="https://github.com/Dav1dushka/web/tree/main/projects/identity-access-api">[src]</a></span></li>
+      <li><span class="perm">drwxr-x---</span><span class="name">soc-triage-desk</span><span class="desc">ssh/auth log analysis with explainable alerts</span><span class="lk"><a href="https://github.com/Dav1dushka/web/tree/main/projects/soc-triage-desk">[src]</a></span></li>
+      <li><span class="perm">drwxr-x---</span><span class="name">api-watchtower</span><span class="desc">uptime, latency and security-header checks</span><span class="lk"><a href="https://github.com/Dav1dushka/Api-Watchtower">[src]</a></span></li>
+      <li><span class="perm">drwxr-x---</span><span class="name">telegram-reminder-bot</span><span class="desc">reminders bot in four languages, aiogram</span><span class="lk"><a href="https://github.com/Dav1dushka/web/tree/main/projects/telegram-reminder-bot">[src]</a></span></li>
+      <li><span class="perm">drwxr-x---</span><span class="name">network-calculator</span><span class="desc">ipv4 subnet calculator</span><span class="lk"><a href="https://github.com/Dav1dushka/Network-Calculator">[src]</a><a href="https://dav1dushka.github.io/Network-Calculator/">[live]</a></span></li>
+      <li><span class="perm">drwxr-x---</span><span class="name">passo</span><span class="desc">job-application tracker, installable pwa</span><span class="lk"><a href="https://github.com/Dav1dushka/Passo">[src]</a><a href="https://dav1dushka.github.io/Passo/">[live]</a></span></li>
+      <li><span class="perm">drwxr-x---</span><span class="name">it-asset-manager</span><span class="desc">inventory of it devices, react + typescript</span><span class="lk"><a href="https://github.com/Dav1dushka/it-asset-manager">[src]</a></span></li>
+      <li><span class="perm">drwxr-x---</span><span class="name">weather</span><span class="desc">forecast dashboard on open-meteo</span><span class="lk"><a href="https://github.com/Dav1dushka/weather">[src]</a></span></li>
+    </ul>
+  </section>
+
+  <section id="stack" aria-labelledby="h-stack">
+    <p class="prompt"><span class="u">davyd@velychko</span>:~$ <span class="cmd" id="h-stack" data-scramble>cat stack.txt</span></p>
+    <dl class="kv">
+      <dt>languages</dt><dd>python, typescript, javascript, sql</dd>
+      <dt>backend</dt><dd>fastapi, asyncio, rest apis, pydantic, sqlalchemy, aiogram</dd>
+      <dt>data</dt><dd>postgresql, sqlite, redis</dd>
+      <dt>network</dt><dd>tcp/ip, dns, tls handshakes, subnetting, sockets, pcap</dd>
+      <dt>security</dt><dd>log analysis, detection rules, mitre att&amp;ck, auth &amp; password hashing, xss/csp</dd>
+      <dt>frontend</dt><dd>react, vite, canvas, chrome extensions</dd>
+      <dt>tooling</dt><dd>git, linux, docker compose, github actions, pytest, ruff</dd>
+    </dl>
+  </section>
+
+  <section id="log" aria-labelledby="h-log">
+    <p class="prompt"><span class="u">davyd@velychko</span>:~$ <span class="cmd" id="h-log" data-scramble>tail ~/log</span></p>
+    <ul class="log">
+      <li><time datetime="2026-11">2026-11</time><span>shipped pcaplens, minidis, firewall-defense, rootwalk, linklens, subnet-sprint, sentinel</span></li>
+      <li><time datetime="2026-08">2026-08 &rarr; now</time><span>software engineering (f2 / 121) &middot; chernihiv polytechnic national university</span></li>
+      <li><time datetime="2025-06">2022 &rarr; 2025</time><span>diploma in software development &middot; kyiv college of telecommunications and it</span></li>
+      <li><time datetime="2022">2022 &rarr; 2026</time><span class="dim">courier, warehouse and restaurant jobs while studying</span></li>
+    </ul>
+  </section>
+
+  <section id="langs" aria-labelledby="h-langs">
+    <p class="prompt"><span class="u">davyd@velychko</span>:~$ <span class="cmd" id="h-langs" data-scramble>locale -a</span></p>
+    <dl class="kv">
+      <dt>ukrainian</dt><dd><span class="bar">██████<i>░</i></span> native</dd>
+      <dt>russian</dt><dd><span class="bar">██████<i>░</i></span> native</dd>
+      <dt>belarusian</dt><dd><span class="bar">████<i>░░░</i></span> b2</dd>
+      <dt>italian</dt><dd><span class="bar">███<i>░░░░</i></span> b1</dd>
+      <dt>english</dt><dd><span class="bar">███<i>░░░░</i></span> b1</dd>
+      <dt>polish</dt><dd><span class="bar">██<i>░░░░░</i></span> a2</dd>
+    </dl>
+  </section>
+
+  <section id="contact" aria-labelledby="h-contact">
+    <p class="prompt"><span class="u">davyd@velychko</span>:~$ <span class="cmd" id="h-contact" data-scramble>cat contact.txt</span></p>
+    <dl class="kv">
+      <dt>mail</dt><dd><a href="mailto:davyd.velychko.tech@gmail.com">davyd.velychko.tech@gmail.com</a></dd>
+      <dt>github</dt><dd><a href="https://github.com/Dav1dushka">github.com/Dav1dushka</a></dd>
+      <dt>linkedin</dt><dd><a href="https://www.linkedin.com/in/davydvelychko">linkedin.com/in/davydvelychko</a></dd>
+      <dt>cv</dt><dd>on request, by mail</dd>
+    </dl>
+    <p style="margin-top:14px">Write about anything: a role, a project, a bug you think I&rsquo;d enjoy. <span class="cursor" aria-hidden="true"></span></p>
+  </section>
+
+  <div class="term" id="terminal">
+    <div class="term-head"><span>visitor@velychko: ~</span><span id="hint" hidden>type <span class="acc">help</span></span></div>
+    <noscript><div class="nojs">the terminal needs javascript. everything above works without it.</div></noscript>
+    <div id="out" role="log" aria-live="polite" hidden></div>
+    <form class="line" id="line" hidden autocomplete="off">
+      <label for="cmd">visitor@velychko:~$</label>
+      <input id="cmd" spellcheck="false" autocapitalize="off" aria-label="terminal command">
+    </form>
+  </div>
+
+  <footer>
+    <p>0 trackers &middot; 0 cookies &middot; 0 external requests &middot; works with javascript disabled</p>
+    <p>plain html, css and a little javascript &middot; no frameworks &middot; &copy; 2026 davyd velychko</p>
+  </footer>
+</main>
+
+<script>
+(() => {
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // -- headings "decrypt" once when they scroll into view ----------------------------
+  const GLYPHS = "!<>-_\\/[]{}=+*^?#01";
+  function scramble(el) {
+    const text = el.textContent;
+    let frame = 0;
+    const total = 18;
+    const tick = () => {
+      el.textContent = [...text].map((c, i) =>
+        c === " " || frame / total > i / text.length ? c : GLYPHS[(Math.random() * GLYPHS.length) | 0]).join("");
+      if (++frame <= total) requestAnimationFrame(tick); else el.textContent = text;
+    };
+    tick();
+  }
+  if (!reduce && "IntersectionObserver" in window) {
+    const io = new IntersectionObserver((entries) => entries.forEach((e) => {
+      if (e.isIntersecting) { scramble(e.target); io.unobserve(e.target); }
+    }), { threshold: 1 });
+    document.querySelectorAll("[data-scramble]").forEach((el) => io.observe(el));
+  }
+
+  // -- background: a slowly flowing field of ascii characters --------------------------------
+  // Characters come from a density ramp; their brightness from a few moving sine waves
+  // (cheap "noise"). The column behind the text stays dim, the cursor lights up a circle,
+  // and now and then a short run of cells flashes like a packet passing by.
+  const field = document.getElementById("field");
+  if (!reduce && field.getContext) {
+    const ctx = field.getContext("2d");
+    const RAMP = " .,:;-=+*x%#@";
+    let W = 0, H = 0, cols = 0, rows = 0, cell = 15, dpr = 1, sprites = [];
+    let mx = -1e4, my = -1e4, last = 0, running = true;
+    const packets = [];
+
+    function build() {
+      dpr = Math.min(devicePixelRatio || 1, 2);
+      W = innerWidth; H = innerHeight;
+      cell = W < 700 ? 17 : 15;
+      cols = Math.ceil(W / cell) + 1; rows = Math.ceil(H / cell) + 1;
+      field.width = W * dpr; field.height = H * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      // Pre-render each glyph once; drawImage is much cheaper than fillText thousands of times a frame.
+      sprites = [...RAMP].map((ch) => {
+        const c = document.createElement("canvas");
+        c.width = c.height = Math.ceil(cell * dpr);
+        const g = c.getContext("2d");
+        g.scale(dpr, dpr);
+        g.fillStyle = "#8aff80";
+        g.font = `${Math.round(cell * 0.82)}px ui-monospace, Menlo, Consolas, monospace`;
+        g.textAlign = "center"; g.textBaseline = "middle";
+        g.fillText(ch, cell / 2, cell / 2 + 1);
+        return c;
+      });
+    }
+
+    function frame(now) {
+      if (!running) return;
+      requestAnimationFrame(frame);
+      if (now - last < 50) return;          // about 20 frames a second is plenty for a drift
+      last = now;
+      const t = now / 1000;
+      ctx.clearRect(0, 0, W, H);
+      const cx = W / 2, half = Math.min(460, W / 2), narrow = W < 700;
+      if (Math.random() < 0.08) packets.push({ r: (Math.random() * rows) | 0, c: 0, len: 4 + (Math.random() * 10 | 0), v: 1 + Math.random() * 2 });
+      for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) {
+          const px = x * cell, py = y * cell;
+          let n = Math.sin(x * 0.09 + t * 0.35) + Math.sin(y * 0.13 - t * 0.27)
+                + Math.sin((x + y) * 0.045 + t * 0.18) + Math.sin(Math.hypot(x - cols * 0.7, y - rows * 0.3) * 0.12 - t * 0.5);
+          n = (n + 4) / 8;                                            // 0..1
+          // dim the column behind the text, brighter towards the edges
+          const side = Math.min(1, Math.max(0, (Math.abs(px - cx) - half * 0.55) / (half * 0.9)));
+          // on a phone the text covers the whole width, so the field stays uniformly faint
+          let a = n * n * (narrow ? 0.07 : 0.05 + 0.2 * side);
+          const d = Math.hypot(px - mx, py - my);
+          if (d < 170) a += (1 - d / 170) * 0.28 * n;                  // the visitor's flashlight
+          if (a < 0.012) continue;
+          const g = Math.min(RAMP.length - 1, 1 + ((n * (RAMP.length - 1)) | 0));
+          ctx.globalAlpha = Math.min(a, 0.55);
+          ctx.drawImage(sprites[g], px, py, cell, cell);
+        }
+      }
+      // packets: short bright runs crossing a row
+      for (let i = packets.length - 1; i >= 0; i--) {
+        const p = packets[i];
+        p.c += p.v;
+        for (let k = 0; k < p.len; k++) {
+          const x = Math.floor(p.c) - k;
+          if (x < 0 || x >= cols) continue;
+          const edge = narrow ? 0.3 : 0.25 + 0.75 * Math.min(1, Math.max(0, (Math.abs(x * cell - cx) - half * 0.55) / (half * 0.9)));
+          ctx.globalAlpha = 0.32 * edge * (1 - k / p.len);
+          ctx.drawImage(sprites[k === 0 ? RAMP.length - 1 : 6], x * cell, p.r * cell, cell, cell);
+        }
+        if (p.c - p.len > cols) packets.splice(i, 1);
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    build();
+    addEventListener("resize", build);
+    addEventListener("pointermove", (e) => { mx = e.clientX; my = e.clientY; }, { passive: true });
+    document.addEventListener("pointerleave", () => { mx = my = -1e4; });
+    document.addEventListener("visibilitychange", () => {       // no work while the tab is hidden
+      running = !document.hidden;
+      if (running) requestAnimationFrame(frame);
+    });
+    requestAnimationFrame(frame);
+    requestAnimationFrame(() => field.classList.add("on"));
+  }
+
+  // -- proof block: replay the output line by line the first time it is visible -----------
+  const proof = document.getElementById("proof");
+  if (!reduce && "IntersectionObserver" in window) {
+    const lines = proof.innerHTML.split("\n");
+    proof.innerHTML = lines.map(() => "").join("\n");     // keep the height, so nothing jumps
+    const reveal = new IntersectionObserver((entries) => {
+      if (!entries[0].isIntersecting) return;
+      reveal.disconnect();
+      let i = 0;
+      const step = () => {
+        i++;
+        proof.innerHTML = lines.slice(0, i).join("\n") + "\n".repeat(lines.length - i);
+        if (i < lines.length) setTimeout(step, i < 3 ? 380 : 210);
+      };
+      setTimeout(step, 300);
+    }, { threshold: 0.4 });
+    reveal.observe(proof);
+  }
+
+  // -- project previews: a small picture follows the pointer over a project row ----------------
+  const PEEK = {
+    pcaplens: { img: "assets/pcaplens.webp", cap: "html report with a timeline of findings" },
+    sentinel: { img: "assets/sentinel.webp", cap: "alerts dashboard, demo mode" },
+    linklens: { img: "assets/linklens.webp", cap: "hover card on a phishing link" },
+    "firewall-defense": { img: "assets/firewall-defense.webp", cap: "level 3: rule order" },
+    "subnet-sprint": { img: "assets/subnet-sprint.webp", cap: "every address, bit by bit" },
+    minidis: { cap: "redis-cli talking to minidis", pre:
+`$ redis-cli -p 6380
+127.0.0.1:6380> SET session:42 "user=davyd" EX 60
+OK
+127.0.0.1:6380> TTL session:42
+(integer) 60
+127.0.0.1:6380> RPUSH jobs resize-image send-email
+(integer) 2
+127.0.0.1:6380> LPOP jobs
+"resize-image"
+127.0.0.1:6380> GET jobs
+(error) WRONGTYPE Operation against a key
+        holding the wrong kind of value` },
+    rootwalk: { cap: "every hop of one lookup", pre:
+`$ rootwalk ext.example.test
+ 1 ext.example.test.   root-1        referral → test.
+ 2 ext.example.test.   ns.nic.test.  referral → example.test.
+ 3 ext.example.test.   ns1.example.  CNAME → api.other.test.
+ 4   api.other.test.   root-1        referral → test.
+ 5   api.other.test.   ns.nic.test.  referral → other.test.
+ 6     ns.provider.net root-1        referral → net.
+ 7     ns.provider.net ns.nic.net.   answer (1)
+ 8   api.other.test.   ns.provider.  answer (1)
+
+api.other.test.  120  A  198.51.100.7` },
+  };
+  const peek = document.getElementById("peek");
+  const canHover = matchMedia("(hover: hover)").matches;
+  if (canHover) {
+    for (const src of Object.values(PEEK)) if (src.img) new Image().src = src.img;   // warm the cache
+    let current = null;
+    const place = (x, y) => {
+      const w = 340, h = peek.offsetHeight || 220;
+      const left = x + w + 28 < innerWidth ? x + 24 : x - w - 24;
+      peek.style.left = Math.max(8, left) + "px";
+      peek.style.top = Math.min(innerHeight - h - 8, Math.max(8, y - h / 2)) + "px";
+    };
+    const show = (li, x, y) => {
+      const name = li.querySelector(".name").textContent;
+      const data = PEEK[name];
+      if (!data) return hide();
+      if (current !== name) {
+        current = name;
+        peek.replaceChildren();
+        if (data.img) {
+          const img = document.createElement("img");
+          img.src = data.img; img.alt = ""; img.width = 640; img.height = 400;
+          peek.append(img);
+        } else {
+          const pre = document.createElement("pre");
+          pre.textContent = data.pre;
+          peek.append(pre);
+        }
+        const cap = document.createElement("figcaption");
+        cap.textContent = name + " — " + data.cap;
+        peek.append(cap);
+      }
+      place(x, y);
+      peek.classList.add("on");
+    };
+    const hide = () => { peek.classList.remove("on"); current = null; };
+    const list = document.querySelector("#projects .ls");
+    list.addEventListener("pointermove", (e) => {
+      const li = e.target.closest("li");
+      if (li) show(li, e.clientX, e.clientY); else hide();
+    });
+    list.addEventListener("pointerleave", hide);
+    list.addEventListener("focusin", (e) => {                 // keyboard users get the preview too
+      const li = e.target.closest("li");
+      if (!li) return;
+      const r = li.getBoundingClientRect();
+      show(li, r.right - 80, r.top + r.height / 2);
+    });
+    list.addEventListener("focusout", hide);
+    addEventListener("scroll", hide, { passive: true });
+  }
+
+  // -- the terminal --------------------------------------------------------------------
+  const out = document.getElementById("out");
+  const form = document.getElementById("line");
+  const input = document.getElementById("cmd");
+  out.hidden = form.hidden = document.getElementById("hint").hidden = false;
+
+  const projects = [...document.querySelectorAll("#projects .ls li")].map((li) => ({
+    name: li.querySelector(".name").textContent,
+    desc: li.querySelector(".desc").firstChild.textContent.trim(),
+    links: [...li.querySelectorAll(".lk a")].map((a) => ({ label: a.textContent, href: a.href })),
+  }));
+
+  function say(text, cls) {
+    const div = document.createElement("div");
+    if (cls) div.className = cls;
+    div.textContent = text;             // textContent only: visitor input is never parsed as html
+    out.append(div);
+    out.scrollTop = out.scrollHeight;
+  }
+
+  const section = (id) => () => { document.getElementById(id).scrollIntoView({ block: "start" }); return `-> #${id}`; };
+  const pad = (s, n) => s + " ".repeat(Math.max(1, n - s.length));
+
+  const commands = {
+    help: () => [
+      "commands:",
+      "  whoami            who is this",
+      "  ls                projects",
+      "  open <project>    open a project's source (try: open pcaplens)",
+      "  stack, log, contact, about   jump to a section",
+      "  mail              copy my email address",
+      "  langs             spoken languages",
+      "  clear, history, date",
+    ].join("\n"),
+    whoami: () => "davyd velychko — junior software developer. python, backend, network security. open to work.",
+    ls: () => projects.map((p) => pad(p.name + "/", 20) + p.desc).join("\n"),
+    open: (arg) => {
+      if (!arg) return "usage: open <project>   (" + projects.map((p) => p.name).join(", ") + ")";
+      const p = projects.find((x) => x.name === arg.replace(/\/$/, ""));
+      if (!p) return { err: `open: ${arg}: no such project` };
+      window.open(p.links[0].href, "_blank", "noopener");
+      return `opening ${p.links[0].href.replace("https://", "")}`;
+    },
+    about: section("about"), stack: section("stack"), log: section("log"), contact: section("contact"),
+    langs: () => "ukrainian native · russian native · belarusian b2 · italian b1 · english b1 · polish a2",
+    mail: () => {
+      const addr = "davyd.velychko.tech@gmail.com";
+      navigator.clipboard?.writeText(addr).catch(() => {});
+      return `${addr}  (copied if your browser allowed it)`;
+    },
+    date: () => new Date().toString(),
+    history: () => past.map((c, i) => `${String(i + 1).padStart(4)}  ${c}`).join("\n") || "(empty)",
+    clear: () => { out.textContent = ""; return ""; },
+    sudo: () => ({ err: "visitor is not in the sudoers file. this incident will be reported." }),
+    rm: () => ({ err: "rm: permission denied. nice try." }),
+    exit: () => "there is no exit. but there is a mail address: type mail",
+    cat: (arg) => (arg && commands[arg.replace(/\.txt$/, "")]) ? commands[arg.replace(/\.txt$/, "")]() : { err: `cat: ${arg || ""}: no such file` },
+  };
+
+  const past = [];
+  let cursor = 0;
+
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const raw = input.value.trim();
+    input.value = "";
+    say("visitor@velychko:~$ " + raw, "dim");
+    if (!raw) return;
+    past.push(raw);
+    cursor = past.length;
+    const [name, ...rest] = raw.split(/\s+/);
+    const fn = commands[name.toLowerCase()];
+    if (!fn) { say(`${name}: command not found. type help`, "err"); return; }
+    const result = fn(rest.join(" "));
+    if (result && typeof result === "object") say(result.err, "err");
+    else if (result) say(result);
+  });
+
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowUp" && cursor > 0) { input.value = past[--cursor]; e.preventDefault(); }
+    else if (e.key === "ArrowDown") { cursor = Math.min(past.length, cursor + 1); input.value = past[cursor] || ""; e.preventDefault(); }
+    else if (e.key === "Tab") {
+      e.preventDefault();
+      const [name, arg] = input.value.split(/\s+/);
+      const pool = arg !== undefined ? projects.map((p) => p.name) : Object.keys(commands);
+      const word = arg !== undefined ? arg : name;
+      const hits = pool.filter((w) => w.startsWith(word.toLowerCase()));
+      if (hits.length === 1) input.value = arg !== undefined ? `${name} ${hits[0]}` : hits[0] + " ";
+      else if (hits.length > 1) say(hits.join("  "), "dim");
+    } else if (e.key === "Escape") input.blur();
+  });
+
+  say("velychko.sh 1.0 — type help, or tab to complete.", "ok");
+
+  // -- keyboard: 1-6 jump to sections, / focuses the terminal ---------------------------------
+  const order = ["about", "projects", "stack", "log", "langs", "contact"];
+  document.addEventListener("keydown", (e) => {
+    if (e.target === input || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.key === "/") { e.preventDefault(); input.focus(); input.scrollIntoView({ block: "center" }); }
+    const n = Number(e.key);
+    if (n >= 1 && n <= order.length) document.getElementById(order[n - 1]).scrollIntoView({ block: "start" });
+  });
+})();
+</script>
+</body>
+</html>
