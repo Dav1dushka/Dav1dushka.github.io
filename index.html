@@ -121,7 +121,7 @@
   #out .ok { color: var(--acc); }
   .line { display: flex; gap: 8px; padding: 8px 14px 12px; }
   .line label { color: var(--acc); white-space: nowrap; }
-  #cmd { flex: 1; background: transparent; border: 0; outline: 0; color: var(--ink); font: inherit; caret-color: var(--acc); padding: 0; }
+  #cmd { flex: 1; min-width: 0; background: transparent; border: 0; outline: 0; color: var(--ink); font: inherit; caret-color: var(--acc); padding: 0; }
   .nojs { padding: 12px 14px; color: var(--dim); }
 
   footer { margin-top: 70px; padding-top: 18px; border-top: 1px dashed var(--faint); color: var(--dim); font-size: 12.5px; }
@@ -170,6 +170,7 @@
       <dt>looking for</dt><dd>a junior developer role &middot; remote or relocation</dd>
       <dt>focus</dt><dd>backend services, networking, detection &amp; defensive security</dd>
       <dt>reach me</dt><dd><a href="mailto:davyd.velychko.tech@gmail.com">davyd.velychko.tech@gmail.com</a></dd>
+      <dt>cv</dt><dd><a href="Davyd_Velychko_CV.pdf" download>download pdf</a> <span class="dim">&middot; one page</span></dd>
       <dt>last update</dt><dd><time datetime="2026-11-26">2026-11-26</time></dd>
     </dl>
 
@@ -277,7 +278,7 @@
       <dt>mail</dt><dd><a href="mailto:davyd.velychko.tech@gmail.com">davyd.velychko.tech@gmail.com</a></dd>
       <dt>github</dt><dd><a href="https://github.com/Dav1dushka">github.com/Dav1dushka</a></dd>
       <dt>linkedin</dt><dd><a href="https://www.linkedin.com/in/davydvelychko">linkedin.com/in/davydvelychko</a></dd>
-      <dt>cv</dt><dd>on request, by mail</dd>
+      <dt>cv</dt><dd><a href="Davyd_Velychko_CV.pdf" download>Davyd_Velychko_CV.pdf</a> &middot; one page, pdf</dd>
     </dl>
     <p style="margin-top:14px">Write about anything: a role, a project, a bug you think I&rsquo;d enjoy. <span class="cursor" aria-hidden="true"></span></p>
   </section>
@@ -544,6 +545,7 @@ api.other.test.  120  A  198.51.100.7` },
       "  open <project>    open a project's source (try: open pcaplens)",
       "  stack, log, contact, about   jump to a section",
       "  mail              copy my email address",
+      "  cv                download my cv (pdf)",
       "  langs             spoken languages",
       "  clear, history, date",
     ].join("\n"),
@@ -557,6 +559,12 @@ api.other.test.  120  A  198.51.100.7` },
       return `opening ${p.links[0].href.replace("https://", "")}`;
     },
     about: section("about"), stack: section("stack"), log: section("log"), contact: section("contact"),
+    cv: () => {
+      const a = document.createElement("a");
+      a.href = "Davyd_Velychko_CV.pdf"; a.download = "";
+      document.body.appendChild(a); a.click(); a.remove();
+      return "downloading Davyd_Velychko_CV.pdf  (one page)";
+    },
     langs: () => "ukrainian native · russian native · belarusian b2 · italian b1 · english b1 · polish a2",
     mail: () => {
       const addr = "davyd.velychko.tech@gmail.com";
