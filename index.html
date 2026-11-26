@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>davyd velychko</title>
-<meta name="description" content="Davyd Velychko — junior software developer. Python, backend, network security.">
+<meta name="description" content="Davyd Velychko — junior software developer. Python backend, React frontend, network security.">
 <meta name="color-scheme" content="dark">
 <meta property="og:type" content="website">
-<meta property="og:title" content="davyd velychko — python · backend · network security">
+<meta property="og:title" content="davyd velychko — python backend · react frontend · network security">
 <meta property="og:description" content="Junior software developer. Open-source tools for networks and security: a packet-capture analyzer, a DNS resolver, a Redis-compatible server, a mini SIEM.">
 <meta property="og:url" content="https://dav1dushka.github.io/">
 <meta property="og:image" content="https://dav1dushka.github.io/og.png">
@@ -161,7 +161,7 @@
 ▀▀▀    ▀  </pre>
       <div class="who">
         <h1 data-scramble>davyd velychko</h1>
-        <p class="dim">junior software developer &mdash; python &middot; backend &middot; network security</p>
+        <p class="dim">junior software developer &mdash; python backend &middot; react frontend &middot; network security</p>
       </div>
     </div>
 
@@ -193,7 +193,7 @@
 
   <section id="about" aria-labelledby="h-about">
     <p class="prompt"><span class="u">davyd@velychko</span>:~$ <span class="cmd" id="h-about" data-scramble>cat about.txt</span></p>
-    <p>I write backend software in Python, and I like the layers most people never look at: packets, protocols, logs &mdash; the places where things break and where attacks hide.</p>
+    <p>I started with frontend &mdash; React and TypeScript &mdash; and now write mostly backend software in Python. I like the layers most people never look at: packets, protocols, logs &mdash; the places where things break and where attacks hide.</p>
     <p>Most of what I build starts from a question like <span class="acc">&ldquo;how does this actually work?&rdquo;</span> So I built a DNS resolver, a Redis-compatible server and a packet-capture analyzer from scratch, each with tests, CI and documentation.</p>
     <p>Diploma in software development (2025); now studying software engineering at Chernihiv Polytechnic. I worked in delivery and hospitality while studying, which taught me to be reliable and calm when things get busy.</p>
   </section>
@@ -549,7 +549,7 @@ api.other.test.  120  A  198.51.100.7` },
       "  langs             spoken languages",
       "  clear, history, date",
     ].join("\n"),
-    whoami: () => "davyd velychko — junior software developer. python, backend, network security. open to work.",
+    whoami: () => "davyd velychko — junior software developer. python backend, react frontend, network security. open to work.",
     ls: () => projects.map((p) => pad(p.name + "/", 20) + p.desc).join("\n"),
     open: (arg) => {
       if (!arg) return "usage: open <project>   (" + projects.map((p) => p.name).join(", ") + ")";
